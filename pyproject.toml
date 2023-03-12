@@ -17,4 +17,4 @@ classifiers = [
 dependencies = ["scipy", "numpy-stl", "mujoco"]
 
 [project.urls]
-"Hompage" = "https://github.com/Yasu31/mjcf_to_urdf"
+"Hompage" = "https://github.com/Yasu31/mjcf_urdf_simple_converter"
