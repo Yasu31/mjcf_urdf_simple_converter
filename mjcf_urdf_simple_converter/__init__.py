@@ -1,0 +1,4 @@
+import pkg_resources
+__version__ = pkg_resources.get_distribution("mjcf_urdf_simple_converter").version
+
+from mjcf_urdf_simple_converter.mjcf_urdf_simple_converter import convert
