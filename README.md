@@ -23,9 +23,10 @@ This converts the `model.xml` (and any associated MJCF files loaded from within 
   * only up to one joint per link is supported
 
 ### what are NOT converted
-
-## TODOs
-* support multiple geoms in one body
+* actuators
+* sensors
+* tendons
+* etc.
 
 ## comments
 * A similar tool exists to convert from MJCF to URDF ([mjcf2urdf](https://github.com/iory/mjcf2urdf)), but the pybullet import that it uses did not work for our case so this tool was created.

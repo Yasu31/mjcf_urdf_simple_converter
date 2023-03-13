@@ -120,10 +120,8 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
 
         # read geom info and add it child body
         geomnum = model.body_geomnum[id]
-        # TODO: it is hardcoded for just a single geom per body, allow multiple geoms
-        geomnum = min(geomnum, 1)
-        if geomnum == 1:
-            geomid = model.body_geomadr[id]
+        for geomnum_i in range(geomnum):
+            geomid = model.body_geomadr[id] + geomnum_i
             if model.geom_type[geomid] != mujoco.mjtGeom.mjGEOM_MESH:
                 # only support mesh geoms
                 continue
@@ -136,7 +134,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             mesh_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MESH, geom_dataid)
 
             # create visual element within body element
-            visual_element = ET.SubElement(body_element, 'visual', {'name': f"{child_name}_visual"})
+            visual_element = ET.SubElement(body_element, 'visual', {'name': mesh_name})
             origin_element = ET.SubElement(visual_element, 'origin', {'xyz': array2str(geom_pos), 'rpy': array2str(geom_rpy)})
             geometry_element = ET.SubElement(visual_element, 'geometry')
             mesh_element = ET.SubElement(geometry_element, 'mesh', {'filename': f"{asset_file_prefix}converted_{mesh_name}.stl"})
