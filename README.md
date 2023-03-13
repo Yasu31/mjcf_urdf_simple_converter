@@ -4,6 +4,11 @@ The model file is loaded in the Python `mujoco` package, and its model elements 
 
 I do **not** intend to expand this into a full-fledged transclation script from MJCF to URDF.
 
+# installation
+```
+pip install mjcf-urdf-simple-converter
+```
+
 ## usage
 ```python
 from mjcf_urdf_simple_converter import convert
