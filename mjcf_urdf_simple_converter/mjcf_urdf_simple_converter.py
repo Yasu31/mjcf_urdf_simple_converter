@@ -49,7 +49,7 @@ def create_joint(xml_root, name, parent, child, pos, rpy, axis=None, jnt_range=N
     ET.SubElement(jnt_element, 'origin', {'xyz': array2str(pos), 'rpy': array2str(rpy)})
     if axis is not None:
         ET.SubElement(jnt_element, 'axis', {'xyz': array2str(axis)})
-        ET.SubElement(jnt_element, 'limit', {'lower': str(jnt_range[0]), 'upper': str(jnt_range[1])})
+        ET.SubElement(jnt_element, 'limit', {'lower': str(jnt_range[0]), 'upper': str(jnt_range[1]), 'effort': "100", 'velocity': "100"})
     return jnt_element
 
 
@@ -171,7 +171,7 @@ def convert(mjcf_file, urdf_file):
         # connect joint body to child body with fixed joint
         jnt2childbody_pos = - childbody2jnt_pos
         jnt2childbody_rpy = np.zeros(3)
-        create_joint(root, jnt_name, jnt_name, child_name, jnt2childbody_pos, jnt2childbody_rpy)
+        create_joint(root, f"{jnt_name}_offset", jnt_name, child_name, jnt2childbody_pos, jnt2childbody_rpy)
     
     # define white material
     material_element = ET.SubElement(root, 'material', {'name': 'white'})
