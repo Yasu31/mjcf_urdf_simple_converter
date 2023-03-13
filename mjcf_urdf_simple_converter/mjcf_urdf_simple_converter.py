@@ -53,13 +53,17 @@ def create_joint(xml_root, name, parent, child, pos, rpy, axis=None, jnt_range=N
     return jnt_element
 
 
-def convert(mjcf_file, urdf_file):
+def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     """
     load MJCF file, parse it in mujoco and save it as URDF
     replicate just the kinematic structure, ignore most dynamics, actuators, etc.
     only works with mesh geoms
     https://mujoco.readthedocs.io/en/stable/APIreference.html#mjmodel
     http://wiki.ros.org/urdf/XML
+    
+    :param mjcf_file: path to existing MJCF file which will be loaded
+    :param urdf_file: path to URDF file which will be saved
+    :param asset_file_prefix: prefix to add to the stl file names (e.g. package://my_package/meshes/)
     """
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
@@ -135,7 +139,7 @@ def convert(mjcf_file, urdf_file):
             visual_element = ET.SubElement(body_element, 'visual', {'name': f"{child_name}_visual"})
             origin_element = ET.SubElement(visual_element, 'origin', {'xyz': array2str(geom_pos), 'rpy': array2str(geom_rpy)})
             geometry_element = ET.SubElement(visual_element, 'geometry')
-            mesh_element = ET.SubElement(geometry_element, 'mesh', {'filename': f"converted_{mesh_name}.stl"})
+            mesh_element = ET.SubElement(geometry_element, 'mesh', {'filename': f"{asset_file_prefix}converted_{mesh_name}.stl"})
             material_element = ET.SubElement(visual_element, 'material', {'name': 'white'})
 
             # create STL
