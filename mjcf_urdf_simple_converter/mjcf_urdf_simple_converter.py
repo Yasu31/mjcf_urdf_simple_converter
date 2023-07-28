@@ -106,8 +106,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             jnt_range = model.jnt_range[jntid]  # [min, max]
             jnt_axis_childbody = model.jnt_axis[jntid]  # [x, y, z]
             childbody2jnt_pos = model.jnt_pos[jntid]  # [x, y, z]
-            # joint axis expressed in parent body frame
-            parentbody2jnt_axis = parentbody2childbody_Rot @ jnt_axis_childbody
+            parentbody2jnt_axis = jnt_axis_childbody
         else:
             # create a fixed joint instead
             jnt_name = f"{parent_name}2{child_name}_fixed"
