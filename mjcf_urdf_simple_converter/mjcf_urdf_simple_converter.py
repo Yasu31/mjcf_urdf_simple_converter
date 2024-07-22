@@ -164,15 +164,16 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             continue  # skip adding joint element or parent body
 
         # create dummy body for joint (position at joint, orientation same as child oody)
-        create_dummy_body(root, jnt_name)
+        jnt_body_name = f"{jnt_name}_jointbody"  # to avoid cases where the joint name is the same as the body name, add "_jointbody"
+        create_dummy_body(root, jnt_body_name)
         # connect parent to joint body with revolute joint
         parentbody2jnt_pos = parentbody2childbody_pos + parentbody2childbody_Rot @ childbody2jnt_pos
         parentbody2jnt_rpy = parentbody2childbody_rpy
-        create_joint(root, jnt_name, parent_name, jnt_name, parentbody2jnt_pos, parentbody2jnt_rpy, parentbody2jnt_axis, jnt_range)
+        create_joint(root, jnt_name, parent_name, jnt_body_name, parentbody2jnt_pos, parentbody2jnt_rpy, parentbody2jnt_axis, jnt_range)
         # connect joint body to child body with fixed joint
         jnt2childbody_pos = - childbody2jnt_pos
         jnt2childbody_rpy = np.zeros(3)
-        create_joint(root, f"{jnt_name}_offset", jnt_name, child_name, jnt2childbody_pos, jnt2childbody_rpy)
+        create_joint(root, f"{jnt_name}_offset", jnt_body_name, child_name, jnt2childbody_pos, jnt2childbody_rpy)
     
     # define white material
     material_element = ET.SubElement(root, 'material', {'name': 'white'})
