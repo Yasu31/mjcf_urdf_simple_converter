@@ -67,6 +67,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     """
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
+    root.append(ET.Comment('generated with mjcf_urdf_simple_converter (https://github.com/Yasu31/mjcf_urdf_simple_converter)'))
 
     for id in range(model.nbody):
         child_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, id)
