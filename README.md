@@ -36,3 +36,9 @@ This converts the `model.xml` (and any associated MJCF files loaded from within 
 ## comments
 * A similar tool exists to convert from MJCF to URDF ([mjcf2urdf](https://github.com/iory/mjcf2urdf)), but the pybullet import that it uses did not work for our case so this tool was created.
 * for converting from URDF to MJCF, the `./compile` program bundled with standard MuJoCo installations can be used.
+
+
+## how it works
+in URDF, when a joint connects a parent and child body, the child body's origin is forcible set to the joint position. (https://wiki.ros.org/urdf/XML/joint)
+
+![](kinematic_chain.drawio.svg)
