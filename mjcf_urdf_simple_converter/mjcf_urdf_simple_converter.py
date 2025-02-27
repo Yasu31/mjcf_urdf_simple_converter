@@ -136,13 +136,14 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             m.save(f"converted_{mesh_name}.stl")
 
 
+        jntnum = model.body_jntnum[id]
+
         if child_name == "world":
             # there is no joint connecting the world to anything, since it is the root
             assert parent_name == "world"
             assert jntnum == 0
             continue  # skip adding joint element or parent body
 
-        jntnum = model.body_jntnum[id]
         
         if jntnum == 0:
             # No joints, create a fixed joint directly to parent
