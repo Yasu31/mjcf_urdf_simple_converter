@@ -16,7 +16,7 @@ convert("model.xml", "model.urdf")
 # or, if you are using it in your ROS package and would like for the mesh directories to be resolved correctly, set meshfile_prefix, for example:
 convert("model.xml", "model.urdf", asset_file_prefix="package://your_package_name/model/")
 ```
-This converts the `model.xml` (and any associated MJCF files loaded from within `model.xml`) to `model.urdf`. Mesh geoms are also converted to STL files, and saved to `converted_*.stl` files within the same directory. The converted files can be checked in Rviz, or online tools like https://gkjohnson.github.io/urdf-loaders/javascript/example/bundle/index.html .
+This converts the `model.xml` (and any associated MJCF files loaded from within `model.xml`) to `model.urdf`. Mesh geoms are also converted to STL files, and saved to `converted_*.stl` files within the same directory. The converted files can be checked in Rviz, or online tools like https://gkjohnson.github.io/urdf-loaders/javascript/example/bundle/index.html (just drag & drop the URDF file and all the mesh STL files into the page).
 
 ### what are converted
 * links
@@ -25,7 +25,7 @@ This converts the `model.xml` (and any associated MJCF files loaded from within 
 * joints
   * joint position, axis and limits (arbitrary values are set for effort and velocity limits)
   * only hinge (revolute) joints are supported
-  * only up to one joint per link is supported
+  * ~~only up to one joint per link is supported~~ -> now supports multiple joints per body!
 
 ### what are NOT converted
 * actuators
@@ -36,3 +36,9 @@ This converts the `model.xml` (and any associated MJCF files loaded from within 
 ## comments
 * A similar tool exists to convert from MJCF to URDF ([mjcf2urdf](https://github.com/iory/mjcf2urdf)), but the pybullet import that it uses did not work for our case so this tool was created.
 * for converting from URDF to MJCF, the `./compile` program bundled with standard MuJoCo installations can be used.
+
+
+## how it works
+in URDF, when a joint connects a parent and child body, the child body's origin is forcible set to the joint position. (https://wiki.ros.org/urdf/XML/joint)
+
+![](kinematic_chain.drawio.svg)

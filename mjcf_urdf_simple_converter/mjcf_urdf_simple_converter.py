@@ -5,6 +5,7 @@ from xml.dom import minidom
 from scipy.spatial.transform import Rotation
 import numpy as np
 from stl import mesh
+import os
 
 def array2str(arr):
     return " ".join([str(x) for x in arr])
@@ -65,8 +66,13 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     :param urdf_file: path to URDF file which will be saved
     :param asset_file_prefix: prefix to add to the stl file names (e.g. package://my_package/meshes/)
     """
+    assert mjcf_file.endswith(".xml"), f"{mjcf_file=} should end with .xml"
+    assert urdf_file.endswith(".urdf"), f"{urdf_file=} should end with .urdf"
+    output_dir = os.path.dirname(urdf_file)
+    assert os.path.exists(output_dir), f"{output_dir=} does not exist, please create it first"
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
+    root.append(ET.Comment('generated with mjcf_urdf_simple_converter (https://github.com/Yasu31/mjcf_urdf_simple_converter)'))
 
     for id in range(model.nbody):
         child_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, id)
@@ -75,9 +81,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
 
         # URDFs assume that the link origin is at the joint position, while in MJCF they can have user-defined values
         # this requires some conversion for the visual, inertial, and joint elements...
-        # in this script, this is done by creating a dummy body with negligible mass and inertia at the joint position.
-        # the parent and joint body (dummy body) are connected with a revolute joint,
-        # and the joint body and child body are connected with a fixed joint.
+        # this is done by creating a dummy body with negligible mass and inertia at the joint position.
         parentbody2childbody_pos = model.body_pos[id]
         parentbody2childbody_quat = model.body_quat[id]  # [w, x, y, z]
         # change to [x, y, z, w]
@@ -94,25 +98,6 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
         childbody2childinertia_quat = [childbody2childinertia_quat[1], childbody2childinertia_quat[2], childbody2childinertia_quat[3], childbody2childinertia_quat[0]]
         childbody2childinertia_Rot = Rotation.from_quat(childbody2childinertia_quat).as_matrix()
         childbody2childinertia_rpy = Rotation.from_matrix(childbody2childinertia_Rot).as_euler('xyz')
-
-        jntnum = model.body_jntnum[id]
-        assert jntnum <= 1, "only one joint per body supported"
-
-        if jntnum == 1:
-            # load joint info
-            jntid = model.body_jntadr[id]
-            assert model.jnt_type[jntid] == mujoco.mjtJoint.mjJNT_HINGE, "only hinge joints supported"
-            jnt_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, jntid)
-            jnt_range = model.jnt_range[jntid]  # [min, max]
-            jnt_axis_childbody = model.jnt_axis[jntid]  # [x, y, z]
-            childbody2jnt_pos = model.jnt_pos[jntid]  # [x, y, z]
-            parentbody2jnt_axis = jnt_axis_childbody
-        else:
-            # create a fixed joint instead
-            jnt_name = f"{parent_name}2{child_name}_fixed"
-            jnt_range = None
-            childbody2jnt_pos = np.zeros(3)
-            parentbody2jnt_axis = None
 
         # create child body
         body_element = create_body(root, child_name, childbody2childinertia_pos, childbody2childinertia_rpy, mass, inertia[0], inertia[1], inertia[2])
@@ -154,8 +139,11 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             for i in range(facenum):
                 data['vectors'][i] = vert[face[i]]
             m = mesh.Mesh(data, remove_empty_areas=False)
-            m.save(f"converted_{mesh_name}.stl")
+            mesh_save_path = os.path.join(output_dir, f"converted_{mesh_name}.stl")
+            m.save(mesh_save_path)
 
+
+        jntnum = model.body_jntnum[id]
 
         if child_name == "world":
             # there is no joint connecting the world to anything, since it is the root
@@ -163,17 +151,80 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             assert jntnum == 0
             continue  # skip adding joint element or parent body
 
-        # create dummy body for joint (position at joint, orientation same as child oody)
-        jnt_body_name = f"{jnt_name}_jointbody"  # to avoid cases where the joint name is the same as the body name, add "_jointbody"
-        create_dummy_body(root, jnt_body_name)
-        # connect parent to joint body with revolute joint
-        parentbody2jnt_pos = parentbody2childbody_pos + parentbody2childbody_Rot @ childbody2jnt_pos
-        parentbody2jnt_rpy = parentbody2childbody_rpy
-        create_joint(root, jnt_name, parent_name, jnt_body_name, parentbody2jnt_pos, parentbody2jnt_rpy, parentbody2jnt_axis, jnt_range)
-        # connect joint body to child body with fixed joint
-        jnt2childbody_pos = - childbody2jnt_pos
-        jnt2childbody_rpy = np.zeros(3)
-        create_joint(root, f"{jnt_name}_offset", jnt_body_name, child_name, jnt2childbody_pos, jnt2childbody_rpy)
+        
+        if jntnum == 0:
+            # No joints, create a fixed joint directly to parent
+            jnt_name = f"{parent_name}2{child_name}_fixed"
+            parentbody2jnt_pos = parentbody2childbody_pos
+            parentbody2jnt_rpy = parentbody2childbody_rpy
+            create_joint(root, jnt_name, parent_name, child_name, parentbody2jnt_pos, parentbody2jnt_rpy)
+        else:
+            # For bodies with joints, create a chain of dummy bodies for each joint
+            current_parent = parent_name
+            cumulative_pos = np.zeros(3)  # position of the current joint in the child body frame
+            cumulative_rot = np.eye(3)
+            
+            # Process all joints for this body
+            for j in range(jntnum):
+                jntid = model.body_jntadr[id] + j
+                jnt_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, jntid)
+                if jnt_name is None:
+                    # Generate a random name for the joint
+                    jnt_name = f"joint_{jntid}"
+                    print(f"WARNING: joint name for {jntid} is None (could happen for ball joints with >1DoF), using automatically generated name {jnt_name}")
+                jnt_body_name = f"{jnt_name}_jointbody"
+                
+                # Create dummy body for this joint
+                create_dummy_body(root, jnt_body_name)
+                
+                if model.jnt_type[jntid] == mujoco.mjtJoint.mjJNT_HINGE:
+                    # Revolute joint
+                    jnt_range = model.jnt_range[jntid]  # [min, max]
+                    jnt_axis_childbody = model.jnt_axis[jntid]  # [x, y, z]
+                    childbody2jnt_pos = model.jnt_pos[jntid]  # [x, y, z]
+                    
+                    # Calculate joint position in parent body frame
+                    if j == 0:
+                        # First joint connects to original parent
+                        parentbody2jnt_pos = parentbody2childbody_pos + parentbody2childbody_Rot @ childbody2jnt_pos
+                        parentbody2jnt_rpy = parentbody2childbody_rpy
+                        parentbody2jnt_axis = jnt_axis_childbody  # In child body frame
+                    else:
+                        # Subsequent joints connect to previous dummy body
+                        # Position is relative to original child body position
+                        parentbody2jnt_pos = childbody2jnt_pos - cumulative_pos
+                        parentbody2jnt_rpy = np.zeros(3)
+                        parentbody2jnt_axis = jnt_axis_childbody
+                    
+                    # Connect current parent to this joint body
+                    create_joint(root, jnt_name, current_parent, jnt_body_name, 
+                                parentbody2jnt_pos, parentbody2jnt_rpy, 
+                                parentbody2jnt_axis, jnt_range)
+                    
+                else:
+                    # Handle other joint types (as fixed joints for now)
+                    print(f"doesn't support joint type {model.jnt_type[jntid]}, treating as fixed joint...")
+                    childbody2jnt_pos = model.jnt_pos[jntid]  # [x, y, z]
+                    if j == 0:
+                        parentbody2jnt_pos = parentbody2childbody_pos
+                        parentbody2jnt_rpy = parentbody2childbody_rpy
+                    else:
+                        parentbody2jnt_pos = np.zeros(3)
+                        parentbody2jnt_rpy = np.zeros(3)
+                    
+                    create_joint(root, jnt_name, current_parent, jnt_body_name,
+                                parentbody2jnt_pos, parentbody2jnt_rpy)
+                
+                # Update parent for next joint in chain
+                current_parent = jnt_body_name
+                cumulative_pos += childbody2jnt_pos
+            
+            # Connect last dummy body to child body with fixed joint
+            # "bring back" the body coordinates to the child body frame
+            jnt2childbody_pos = - childbody2jnt_pos if jntnum > 0 else np.zeros(3)
+            jnt2childbody_rpy = np.zeros(3)
+            create_joint(root, f"{jnt_name}_offset", current_parent, child_name,
+                         jnt2childbody_pos, jnt2childbody_rpy)
     
     # define white material
     material_element = ET.SubElement(root, 'material', {'name': 'white'})
@@ -190,4 +241,4 @@ if __name__ == '__main__':
     parser.add_argument('mjcf_file', type=str)
     parser.add_argument('urdf_file', type=str)
     args = parser.parse_args()
-    mjcf2urdf(args.mjcf_file, args.urdf_file)
+    convert(args.mjcf_file, args.urdf_file)
