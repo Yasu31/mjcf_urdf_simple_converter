@@ -5,6 +5,7 @@ from xml.dom import minidom
 from scipy.spatial.transform import Rotation
 import numpy as np
 from stl import mesh
+import os
 
 def array2str(arr):
     return " ".join([str(x) for x in arr])
@@ -65,6 +66,10 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     :param urdf_file: path to URDF file which will be saved
     :param asset_file_prefix: prefix to add to the stl file names (e.g. package://my_package/meshes/)
     """
+    assert mjcf_file.endswith(".xml"), f"{mjcf_file=} should end with .xml"
+    assert urdf_file.endswith(".urdf"), f"{urdf_file=} should end with .urdf"
+    output_dir = os.path.dirname(urdf_file)
+    assert os.path.exists(output_dir), f"{output_dir=} does not exist, please create it first"
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
     root.append(ET.Comment('generated with mjcf_urdf_simple_converter (https://github.com/Yasu31/mjcf_urdf_simple_converter)'))
@@ -134,7 +139,8 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             for i in range(facenum):
                 data['vectors'][i] = vert[face[i]]
             m = mesh.Mesh(data, remove_empty_areas=False)
-            m.save(f"converted_{mesh_name}.stl")
+            mesh_save_path = os.path.join(output_dir, f"converted_{mesh_name}.stl")
+            m.save(mesh_save_path)
 
 
         jntnum = model.body_jntnum[id]
