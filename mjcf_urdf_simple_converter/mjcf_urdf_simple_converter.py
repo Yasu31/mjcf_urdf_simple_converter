@@ -168,6 +168,10 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             for j in range(jntnum):
                 jntid = model.body_jntadr[id] + j
                 jnt_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, jntid)
+                if jnt_name is None:
+                    # Generate a random name for the joint
+                    jnt_name = f"joint_{jntid}"
+                    print(f"WARNING: joint name for {jntid} is None (could happen for ball joints with >1DoF), using automatically generated name {jnt_name}")
                 jnt_body_name = f"{jnt_name}_jointbody"
                 
                 # Create dummy body for this joint
