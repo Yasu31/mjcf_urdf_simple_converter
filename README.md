@@ -50,4 +50,5 @@ For example, if a body in the MJCF has 2 joints:
 - a `fixed` joint connects `joint2_jointbody` to `child_body` (this "brings back" the coordinate frame back to the MJCF child body's frame)
 
 and the process is continued onwards to the next MJCF body.
-![](kinematic_chain.drawio.png | width=200)
+
+<img src="kinematic_chain.drawio.png" width="400">
