@@ -204,6 +204,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
                 else:
                     # Handle other joint types (as fixed joints for now)
                     print(f"doesn't support joint type {model.jnt_type[jntid]}, treating as fixed joint...")
+                    childbody2jnt_pos = model.jnt_pos[jntid]  # [x, y, z]
                     if j == 0:
                         parentbody2jnt_pos = parentbody2childbody_pos
                         parentbody2jnt_rpy = parentbody2childbody_rpy
