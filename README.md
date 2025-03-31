@@ -39,6 +39,15 @@ This converts the `model.xml` (and any associated MJCF files loaded from within 
 
 
 ## how it works
-in URDF, when a joint connects a parent and child body, the child body's origin is forcible set to the joint position. (https://wiki.ros.org/urdf/XML/joint)
+in URDF, when a joint connects a parent and child body, the child body's origin is fixed to the position of the joint (https://wiki.ros.org/urdf/XML/joint). There is always only a single joint connecting the parent and child. On the other hand, for MJCFs there can be multiple joints defined in a body, and joints are defined within the child body element. Also, the body position is defined relative to the parent frame and it does not depend on the joint positions. Thus some conversions are necessary to translate the MJCF's kinematic structure to URDF.
 
+The approach that I took in this code is to use just add many intermediate bodies whose relative poses are defined with `fixed` joints, to express each transformation. The `add_dummy_body()` function creates a body with negligible mass and inertia at the joint position, which creates an empty body, to which joints can be attached. This way, each actual body defined in the MJCF can keep using the same coordinate system 
+
+For example, if a body in the MJCF has 2 joints:
+
+- a `revolute` joint connects `parent_body` to `joint1_jointbody`
+- a `revolute` joint connects `joint1_jointbody` to `joint2_jointbody`
+- a `fixed` joint connects `joint2_jointbody` to `child_body` (this "brings back" the coordinate frame back to the MJCF child body's frame)
+
+and the process is continued onwards to the next MJCF body.
 ![](kinematic_chain.drawio.svg)
