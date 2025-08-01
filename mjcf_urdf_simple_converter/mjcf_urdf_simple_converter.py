@@ -69,7 +69,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     assert mjcf_file.endswith(".xml"), f"{mjcf_file=} should end with .xml"
     assert urdf_file.endswith(".urdf"), f"{urdf_file=} should end with .urdf"
     output_dir = os.path.dirname(urdf_file)
-    assert os.path.exists(output_dir), f"{output_dir=} does not exist, please create it first"
+    assert output_dir == "" or os.path.exists(output_dir), f"{output_dir=} does not exist, please create it first"
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
     root.append(ET.Comment('generated with mjcf_urdf_simple_converter (https://github.com/Yasu31/mjcf_urdf_simple_converter)'))
