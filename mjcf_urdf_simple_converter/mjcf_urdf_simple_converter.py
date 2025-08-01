@@ -1,10 +1,8 @@
 import mujoco
-import numpy
 from xml.etree import ElementTree as ET
 from xml.dom import minidom
 from scipy.spatial.transform import Rotation
 import numpy as np
-from stl import mesh
 import os
 
 def array2str(arr):
@@ -64,12 +62,14 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     
     :param mjcf_file: path to existing MJCF file which will be loaded
     :param urdf_file: path to URDF file which will be saved
-    :param asset_file_prefix: prefix to add to the stl file names (e.g. package://my_package/meshes/)
+    :param asset_file_prefix: prefix to add to the mesh file names (e.g. package://my_package/)
     """
     assert mjcf_file.endswith(".xml"), f"{mjcf_file=} should end with .xml"
     assert urdf_file.endswith(".urdf"), f"{urdf_file=} should end with .urdf"
     output_dir = os.path.dirname(urdf_file)
     assert output_dir == "" or os.path.exists(output_dir), f"{output_dir=} does not exist, please create it first"
+    meshes_dir = os.path.join(output_dir, "meshes")
+    os.makedirs(meshes_dir, exist_ok=True)
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
     root.append(ET.Comment('generated with mjcf_urdf_simple_converter (https://github.com/Yasu31/mjcf_urdf_simple_converter)'))
@@ -121,26 +121,36 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             visual_element = ET.SubElement(body_element, 'visual', {'name': mesh_name})
             origin_element = ET.SubElement(visual_element, 'origin', {'xyz': array2str(geom_pos), 'rpy': array2str(geom_rpy)})
             geometry_element = ET.SubElement(visual_element, 'geometry')
-            mesh_element = ET.SubElement(geometry_element, 'mesh', {'filename': f"{asset_file_prefix}converted_{mesh_name}.stl"})
-            material_element = ET.SubElement(visual_element, 'material', {'name': 'white'})
+            mesh_element = ET.SubElement(geometry_element, 'mesh', {
+                'filename': f"{asset_file_prefix}meshes/converted_{mesh_name}.obj"})
 
-            # create STL
-            # the meshes in the MjModel seem to be different (have different pose) from the original STLs
-            # so rather than using the original STLs, write them out from the MjModel
-            # https://stackoverflow.com/questions/60066405/create-a-stl-file-from-a-collection-of-points
+            # create OBJ+MTL
+            # the meshes in the MjModel seem to be different (have different pose) from the original assets
+            # so rather than using the original meshes, write them out from the MjModel
             vertadr = model.mesh_vertadr[geom_dataid]  # first vertex address
             vertnum = model.mesh_vertnum[geom_dataid]
             vert = model.mesh_vert[vertadr:vertadr+vertnum]
-            normal = model.mesh_normal[vertadr:vertadr+vertnum]
             faceadr = model.mesh_faceadr[geom_dataid]  # first face address
             facenum = model.mesh_facenum[geom_dataid]
             face = model.mesh_face[faceadr:faceadr+facenum]
-            data = np.zeros(facenum, dtype=mesh.Mesh.dtype)
-            for i in range(facenum):
-                data['vectors'][i] = vert[face[i]]
-            m = mesh.Mesh(data, remove_empty_areas=False)
-            mesh_save_path = os.path.join(output_dir, f"converted_{mesh_name}.stl")
-            m.save(mesh_save_path)
+
+            r, g, b, a = model.geom_rgba[geomid]
+
+            obj_path = os.path.join(meshes_dir, f"converted_{mesh_name}.obj")
+            mtl_path = os.path.join(meshes_dir, f"converted_{mesh_name}.mtl")
+
+            with open(mtl_path, "w") as mtl_file:
+                mtl_file.write("newmtl material\n")
+                mtl_file.write(f"Kd {r} {g} {b}\n")
+                mtl_file.write(f"d {a}\n")
+
+            with open(obj_path, "w") as obj_file:
+                obj_file.write(f"mtllib {os.path.basename(mtl_path)}\n")
+                obj_file.write("usemtl material\n")
+                for v in vert:
+                    obj_file.write(f"v {v[0]} {v[1]} {v[2]}\n")
+                for f in face:
+                    obj_file.write(f"f {int(f[0])+1} {int(f[1])+1} {int(f[2])+1}\n")
 
 
         jntnum = model.body_jntnum[id]
@@ -226,9 +236,6 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             create_joint(root, f"{jnt_name}_offset", current_parent, child_name,
                          jnt2childbody_pos, jnt2childbody_rpy)
     
-    # define white material
-    material_element = ET.SubElement(root, 'material', {'name': 'white'})
-    color_element = ET.SubElement(material_element, 'color', {'rgba': '1 1 1 1'})
 
     # write to file with pretty printing
     xmlstr = minidom.parseString(ET.tostring(root)).toprettyxml(indent="   ")
