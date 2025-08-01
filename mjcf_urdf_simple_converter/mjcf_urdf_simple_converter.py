@@ -70,6 +70,7 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
     assert output_dir == "" or os.path.exists(output_dir), f"{output_dir=} does not exist, please create it first"
     meshes_dir = os.path.join(output_dir, "meshes")
     os.makedirs(meshes_dir, exist_ok=True)
+    exported_meshes = {}
     model = mujoco.MjModel.from_xml_path(mjcf_file)
     root = ET.Element('robot', {'name': "converted_robot"})
     root.append(ET.Comment('generated with mjcf_urdf_simple_converter (https://github.com/Yasu31/mjcf_urdf_simple_converter)'))
@@ -121,36 +122,41 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             visual_element = ET.SubElement(body_element, 'visual', {'name': mesh_name})
             origin_element = ET.SubElement(visual_element, 'origin', {'xyz': array2str(geom_pos), 'rpy': array2str(geom_rpy)})
             geometry_element = ET.SubElement(visual_element, 'geometry')
-            mesh_element = ET.SubElement(geometry_element, 'mesh', {
-                'filename': f"{asset_file_prefix}meshes/converted_{mesh_name}.obj"})
-
-            # create OBJ+MTL
-            # the meshes in the MjModel seem to be different (have different pose) from the original assets
-            # so rather than using the original meshes, write them out from the MjModel
-            vertadr = model.mesh_vertadr[geom_dataid]  # first vertex address
-            vertnum = model.mesh_vertnum[geom_dataid]
-            vert = model.mesh_vert[vertadr:vertadr+vertnum]
-            faceadr = model.mesh_faceadr[geom_dataid]  # first face address
-            facenum = model.mesh_facenum[geom_dataid]
-            face = model.mesh_face[faceadr:faceadr+facenum]
 
             r, g, b, a = model.geom_rgba[geomid]
+            color_code = ''.join(f'{int(round(c * 255)):02x}' for c in (r, g, b, a))
+            sanitized_mesh_name = mesh_name.replace('/', '_').replace(' ', '_')
+            key = (geom_dataid, color_code)
+            file_base = exported_meshes.get(key)
+            if file_base is None:
+                file_base = f"converted_{sanitized_mesh_name}_{color_code}"
+                obj_path = os.path.join(meshes_dir, f"{file_base}.obj")
+                mtl_path = os.path.join(meshes_dir, f"{file_base}.mtl")
 
-            obj_path = os.path.join(meshes_dir, f"converted_{mesh_name}.obj")
-            mtl_path = os.path.join(meshes_dir, f"converted_{mesh_name}.mtl")
+                vertadr = model.mesh_vertadr[geom_dataid]  # first vertex address
+                vertnum = model.mesh_vertnum[geom_dataid]
+                vert = model.mesh_vert[vertadr:vertadr + vertnum]
+                faceadr = model.mesh_faceadr[geom_dataid]  # first face address
+                facenum = model.mesh_facenum[geom_dataid]
+                face = model.mesh_face[faceadr:faceadr + facenum]
 
-            with open(mtl_path, "w") as mtl_file:
-                mtl_file.write("newmtl material\n")
-                mtl_file.write(f"Kd {r} {g} {b}\n")
-                mtl_file.write(f"d {a}\n")
+                with open(mtl_path, "w") as mtl_file:
+                    mtl_file.write("newmtl material\n")
+                    mtl_file.write(f"Kd {r} {g} {b}\n")
+                    mtl_file.write(f"d {a}\n")
 
-            with open(obj_path, "w") as obj_file:
-                obj_file.write(f"mtllib {os.path.basename(mtl_path)}\n")
-                obj_file.write("usemtl material\n")
-                for v in vert:
-                    obj_file.write(f"v {v[0]} {v[1]} {v[2]}\n")
-                for f in face:
-                    obj_file.write(f"f {int(f[0])+1} {int(f[1])+1} {int(f[2])+1}\n")
+                with open(obj_path, "w") as obj_file:
+                    obj_file.write(f"mtllib {os.path.basename(mtl_path)}\n")
+                    obj_file.write("usemtl material\n")
+                    for v in vert:
+                        obj_file.write(f"v {v[0]} {v[1]} {v[2]}\n")
+                    for f in face:
+                        obj_file.write(f"f {int(f[0]) + 1} {int(f[1]) + 1} {int(f[2]) + 1}\n")
+
+                exported_meshes[key] = file_base
+
+            mesh_element = ET.SubElement(
+                geometry_element, 'mesh', {'filename': f"{asset_file_prefix}meshes/{file_base}.obj"})
 
 
         jntnum = model.body_jntnum[id]
