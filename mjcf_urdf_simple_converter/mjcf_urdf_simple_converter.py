@@ -4,7 +4,6 @@ from xml.dom import minidom
 from scipy.spatial.transform import Rotation
 import numpy as np
 import os
-import trimesh
 
 def array2str(arr):
     return " ".join([str(x) for x in arr])
@@ -131,24 +130,33 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             file_base = exported_meshes.get(key)
             if file_base is None:
                 file_base = f"converted_{sanitized_mesh_name}_{color_code}"
-                dae_path = os.path.join(meshes_dir, f"{file_base}.dae")
+                obj_path = os.path.join(meshes_dir, f"{file_base}.obj")
+                mtl_path = os.path.join(meshes_dir, f"{file_base}.mtl")
 
-                vertadr = model.mesh_vertadr[geom_dataid]
+                vertadr = model.mesh_vertadr[geom_dataid]  # first vertex address
                 vertnum = model.mesh_vertnum[geom_dataid]
                 vert = model.mesh_vert[vertadr:vertadr + vertnum]
-                faceadr = model.mesh_faceadr[geom_dataid]
+                faceadr = model.mesh_faceadr[geom_dataid]  # first face address
                 facenum = model.mesh_facenum[geom_dataid]
                 face = model.mesh_face[faceadr:faceadr + facenum]
 
-                color_rgba = [int(round(r * 255)), int(round(g * 255)), int(round(b * 255)), int(round(a * 255))]
-                mesh = trimesh.Trimesh(vertices=vert, faces=face, process=False)
-                mesh.visual.vertex_colors = np.tile(color_rgba, (mesh.vertices.shape[0], 1))
-                mesh.export(dae_path)
+                with open(mtl_path, "w") as mtl_file:
+                    mtl_file.write("newmtl material\n")
+                    mtl_file.write(f"Kd {r} {g} {b}\n")
+                    mtl_file.write(f"d {a}\n")
+
+                with open(obj_path, "w") as obj_file:
+                    obj_file.write(f"mtllib {os.path.basename(mtl_path)}\n")
+                    obj_file.write("usemtl material\n")
+                    for v in vert:
+                        obj_file.write(f"v {v[0]} {v[1]} {v[2]}\n")
+                    for f in face:
+                        obj_file.write(f"f {int(f[0]) + 1} {int(f[1]) + 1} {int(f[2]) + 1}\n")
 
                 exported_meshes[key] = file_base
 
             mesh_element = ET.SubElement(
-                geometry_element, 'mesh', {'filename': f"{asset_file_prefix}meshes/{file_base}.dae"})
+                geometry_element, 'mesh', {'filename': f"{asset_file_prefix}meshes/{file_base}.obj"})
 
 
         jntnum = model.body_jntnum[id]
