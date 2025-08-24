@@ -15,11 +15,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 dependencies = ["scipy", "numpy-stl", "mujoco"]
-dynamic = ["readme"]
 
 [project.urls]
 "Homepage" = "https://github.com/Yasu31/mjcf_urdf_simple_converter"
 Changelog = "https://github.com/Yasu31/mjcf_urdf_simple_converter/blob/main/CHANGELOG.md"
-
-[tool.setuptools.dynamic]
-readme = { file = ["README.md", "CHANGELOG.md"], content-type = "text/markdown" }
