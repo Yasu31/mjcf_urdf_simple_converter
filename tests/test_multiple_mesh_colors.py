@@ -1,8 +1,12 @@
+"""Tests exporting meshes that share geometry but use different colors."""
+
 from pathlib import Path
+
 from mjcf_urdf_simple_converter import convert
 
 
 def test_multiple_mesh_colors(tmp_path):
+    """Convert an MJCF with the same mesh used in different colors and expect distinct exports."""
     mjcf_path = Path(__file__).with_name("data") / "multi_color_mjcf.xml"
     urdf_path = tmp_path / "mesh.urdf"
     convert(str(mjcf_path), str(urdf_path))
