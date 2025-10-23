@@ -122,8 +122,9 @@ def convert(mjcf_file, urdf_file, asset_file_prefix=""):
             visual_element = ET.SubElement(body_element, 'visual', {'name': mesh_name})
             origin_element = ET.SubElement(visual_element, 'origin', {'xyz': array2str(geom_pos), 'rpy': array2str(geom_rpy)})
             geometry_element = ET.SubElement(visual_element, 'geometry')
-
-            r, g, b, a = model.geom_rgba[geomid]
+            
+            matid = model.geom_matid[geomid]
+            r, g, b, a = model.mat_rgba[matid] if matid != -1 else model.geom_rgba[geomid]
             color_code = ''.join(f'{int(round(c * 255)):02x}' for c in (r, g, b, a))
             sanitized_mesh_name = mesh_name.replace('/', '_').replace(' ', '_')
             key = (geom_dataid, color_code)
