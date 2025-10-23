@@ -1,6 +1,7 @@
 """Tests for converting basic MJCF models to URDF files."""
 
 from pathlib import Path
+import os
 
 from mjcf_urdf_simple_converter import convert
 import mujoco
@@ -22,9 +23,12 @@ def test_simple_mjcf_conversion(tmp_path):
     red_code = "".join(f"{int(round(c * 255)):02x}" for c in (1, 0, 0, 1))
     green_code = "".join(f"{int(round(c * 255)):02x}" for c in (0, 1, 0, 1))
     blue_code = "".join(f"{int(round(c * 255)):02x}" for c in (0, 0, 1, 1))
-    red_obj = tmp_path / "meshes" / f"converted_tetra_{red_code}.obj"
-    green_obj = tmp_path / "meshes" / f"converted_tetra_{green_code}.obj"
-    blue_obj = tmp_path / "meshes" / f"converted_tetra_{blue_code}.obj"
-    assert red_obj.exists()
-    assert green_obj.exists()
-    assert blue_obj.exists()
+    red_basepath = tmp_path / "meshes" / f"converted_base_{red_code}"
+    green_basepath = tmp_path / "meshes" / f"converted_link1_{green_code}"
+    blue_basepath = tmp_path / "meshes" / f"converted_link2_{blue_code}"
+    assert os.path.exists(f"{red_basepath}.obj")
+    assert os.path.exists(f"{red_basepath}.mtl")
+    assert os.path.exists(f"{green_basepath}.obj")
+    assert os.path.exists(f"{green_basepath}.mtl")
+    assert os.path.exists(f"{blue_basepath}.obj")
+    assert os.path.exists(f"{blue_basepath}.mtl")
