@@ -1,3 +1,7 @@
+## [0.7.2] - 2025-10-23
+- Merge PR https://github.com/Yasu31/mjcf_urdf_simple_converter/pull/6 to respect material RGBA if specified
+- change example MJCF used in tests which lets me check both articulation & RGB at same time
+
 ## [0.7] - 2025-08-24
 
 - Add OBJ mesh + MTL color export
