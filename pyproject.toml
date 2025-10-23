@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name="mjcf_urdf_simple_converter"
-version="0.7.2"
+dynamic = ["version"]
 authors = [{name="Yasunori Toshimitsu", email="yasu313nori@gmail.com"}]
 description = "Minimal script to convert MuJoCo MJCF robot model files to URDF files usable in ROS"
 readme = "README.md"
@@ -19,3 +19,6 @@ dependencies = ["scipy", "numpy-stl", "mujoco"]
 [project.urls]
 "Homepage" = "https://github.com/Yasu31/mjcf_urdf_simple_converter"
 Changelog = "https://github.com/Yasu31/mjcf_urdf_simple_converter/blob/main/CHANGELOG.md"
+
+[tool.setuptools.dynamic]
+version = {attr = "mjcf_urdf_simple_converter.__init__.__version__"}
