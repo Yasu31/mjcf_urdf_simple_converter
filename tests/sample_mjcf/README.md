@@ -1,0 +1,1 @@
+example MJCF from https://yasunori.jp/en/2024/07/13/mujoco-model-yourself.html

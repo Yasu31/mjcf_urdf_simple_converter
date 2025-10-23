@@ -1,0 +1,39 @@
+<mujoco model="really_simple_arm">
+    <compiler angle="radian"/>  <!-- use radians to define angles -->
+    <default>
+        <!-- set default attributes to clean up XML -->
+        <!-- convert the Fusion 360 coordinate system to MuJoCo by setting a transform with xyaxes-->
+        <geom type="mesh" xyaxes="1 0 0 0 0 1"/>
+        <joint type="hinge" limited="true" axis="0 1 0"/>
+        <!-- kp is proportional gain, kv is damping gain -->
+        <position ctrllimited="true" kp="1" kv="0.1"/>
+    </default>
+    <asset>
+        <!-- Fusion outputs meshes with mm units by default, but must be converted to m in MuJoCo, hence the scaling -->
+        <mesh name="base" file="base.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="link1" file="link1.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="link2" file="link2.stl" scale="0.001 0.001 0.001"/>
+    </asset>
+    <worldbody>
+        <body name="base">
+            <geom mesh="base" rgba="1. 0. 0. 1."/>
+            <body name="link1">
+                <joint name="joint_1" pos="0.1 -0.015 0.05" range="-0.78 0.78"/>
+                <geom mesh="link1" rgba="0. 1. 0. 1."/>
+                <body name="link2">
+                    <joint name="joint_2" pos="0.1583 -0.01 0.1994" range="-1.57 1.57"/>
+                    <geom mesh="link2" rgba="0. 0. 1. 1."/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <position name="joint_1" joint="joint_1" ctrlrange="-0.78 0.78"/>
+        <position name="joint_2" joint="joint_2" ctrlrange="-1.57 1.57"/>
+    </actuator>
+    <contact>
+        <exclude body1="base" body2="link1"/>
+        <exclude body1="link1" body2="link2"/>
+    </contact>
+</mujoco>
