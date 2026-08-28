@@ -1,5 +1,4 @@
 
-
 # mjcf_urdf_simple_converter
 A minimal and simple script to convert **limited elements** of MJCF (MuJoCo modeling format) robot model files to URDF. Developed from a need to visualize MJCF robots in ROS environments like Rviz, it only converts a limited subset of the robot model elements to URDF.
 The model file is loaded in the Python `mujoco` package, and its model elements are parsed using the library and then output according to the URDF XML format.
