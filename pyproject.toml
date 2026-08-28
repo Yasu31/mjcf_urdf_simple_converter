@@ -14,7 +14,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: POSIX :: Linux",
 ]
-dependencies = ["scipy", "numpy-stl", "mujoco"]
+dependencies = [
+    "scipy",
+    "numpy-stl",
+    "mujoco==3.3.4; python_version < '3.10'",
+    "mujoco; python_version >= '3.10'",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/Yasu31/mjcf_urdf_simple_converter"
