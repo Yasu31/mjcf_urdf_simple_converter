@@ -13,7 +13,7 @@ pip install mjcf-urdf-simple-converter
 ```python
 from mjcf_urdf_simple_converter import convert
 convert("model.xml", "model.urdf")
-# or, if you are using it in your ROS package and would like for the mesh directories to be resolved correctly, set meshfile_prefix, for example:
+# or, if you are using it in your ROS package and would like for the mesh directories to be resolved correctly, set asset_file_prefix, for example:
 convert("model.xml", "model.urdf", asset_file_prefix="package://your_package_name/model/")
 ```
 This converts the `model.xml` (and any associated MJCF files loaded from within `model.xml`) to `model.urdf`. Mesh geoms are exported as OBJ/MTL pairs with baked-in color information and saved under the `meshes/` directory. If the same mesh is used with different colors, separate OBJ/MTL files are generated with a color code appended to the filename. The converted files can be checked in Rviz, or online tools like https://gkjohnson.github.io/urdf-loaders/javascript/example/bundle/index.html (just drag & drop the URDF file and all the mesh OBJ/MTL files into the page).
